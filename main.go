@@ -56,6 +56,19 @@ func gzipMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+// recoveryMiddleware catches panics and returns a 500 JSON error
+func recoveryMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Printf("Panic recovered: %v", err)
+				sendError(w, http.StatusInternalServerError, "An internal server error occurred")
+			}
+		}()
+		next.ServeHTTP(w, r)
+	})
+}
+
 // Global client pool
 var clientPool = make(map[string]tls_client.HttpClient)
 
@@ -244,6 +257,18 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func handleRoot(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "online",
+		"purpose": "High-performance API to bypass TLS fingerprinting by mimicking modern browser signatures.",
+	})
+}
+
 func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -254,8 +279,9 @@ func main() {
 	http.HandleFunc("/request", gzipMiddleware(handleJSONRequest))
 	http.HandleFunc("/profiles", gzipMiddleware(handleProfiles))
 	http.HandleFunc("/health", gzipMiddleware(handleHealth))
+	http.HandleFunc("/", handleRoot)
 
-	// Local development server
+	// Local development server with Global Recovery Middleware
 	log.Printf("🚀 TLS Bypass Service running on :%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	log.Fatal(http.ListenAndServe(":"+port, recoveryMiddleware(http.DefaultServeMux)))
 }
