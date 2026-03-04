@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/awslabs/aws-lambda-go-api-proxy/httpadapter"
 	fhttp "github.com/bogdanfinn/fhttp"
 	tls_client "github.com/bogdanfinn/tls-client"
 	"github.com/bogdanfinn/tls-client/profiles"
@@ -275,13 +277,24 @@ func main() {
 		port = "8080"
 	}
 
-	// Register handlers
-	http.HandleFunc("/request", gzipMiddleware(handleJSONRequest))
-	http.HandleFunc("/profiles", gzipMiddleware(handleProfiles))
-	http.HandleFunc("/health", gzipMiddleware(handleHealth))
-	http.HandleFunc("/", handleRoot)
+	// Register handlers on a mux
+	mux := http.NewServeMux()
+	mux.HandleFunc("/request", gzipMiddleware(handleJSONRequest))
+	mux.HandleFunc("/profiles", gzipMiddleware(handleProfiles))
+	mux.HandleFunc("/health", gzipMiddleware(handleHealth))
+	mux.HandleFunc("/", handleRoot)
 
-	// Local development server with Global Recovery Middleware
+	// Wrap handlers with Recovery middleware
+	handler := recoveryMiddleware(mux)
+
+	// Check if running in AWS Lambda
+	if os.Getenv("AWS_LAMBDA_FUNCTION_NAME") != "" {
+		log.Println("🚀 TLS Bypass Service starting in AWS Lambda mode")
+		lambda.Start(httpadapter.New(handler).ProxyWithContext)
+		return
+	}
+
+	// Local development server
 	log.Printf("🚀 TLS Bypass Service running on :%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, recoveryMiddleware(http.DefaultServeMux)))
+	log.Fatal(http.ListenAndServe(":"+port, handler))
 }

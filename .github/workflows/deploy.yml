@@ -1,0 +1,54 @@
+name: Deploy to AWS Lambda & GitHub Release
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed for creating releases
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Needed for tagging
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+
+      - name: Build Lambda Binary
+        run: |
+          # AWS Lambda Go runtime (AL2023) expects 'bootstrap' for provided runtime
+          GOOS=linux GOARCH=amd64 go build -o bootstrap main.go
+          zip deployment.zip bootstrap
+
+      - name: Set Version/Tag
+        id: vars
+        run: |
+          VERSION="v1.0.${{ github.run_number }}"
+          echo "TAG=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create Git Tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.vars.outputs.TAG }}
+          git push origin ${{ steps.vars.outputs.TAG }}
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.TAG }}
+          name: Release ${{ steps.vars.outputs.TAG }}
+          files: deployment.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

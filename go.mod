@@ -9,6 +9,11 @@ require (
 )
 
 require (
+	github.com/aws/aws-lambda-go v1.53.0
+	github.com/awslabs/aws-lambda-go-api-proxy v0.16.2
+)
+
+require (
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/bdandy/go-errors v1.2.2 // indirect
 	github.com/bdandy/go-socks4 v1.2.3 // indirect

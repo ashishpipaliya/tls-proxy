@@ -48,21 +48,31 @@ docker run -p 8080:8080 tls-bypass-proxy
 
 ## Deployment
 
-### Render / Container Platforms
-This service is designed to run in a container. To deploy on **Render**:
+### AWS Lambda
 
-1. Create a new **Web Service**.
-2. Connect your GitHub repository.
-3. Select **Docker** as the Runtime.
-4. Render will automatically use the `Dockerfile` to build and deploy.
+The service is fully compatible with AWS Lambda. A GitHub Actions workflow `.github/workflows/deploy.yml` is provided to automate:
+1.  **Build**: Compiles the Go application for `linux/amd64` using the `bootstrap` filename.
+2.  **Zip**: Packages the binary into `deployment.zip`.
+3.  **Tag**: Automatically creates a version tag (e.g., `v1.0.12`).
+4.  **Release**: Uploads the `deployment.zip` to a new GitHub Release.
 
-Alternatively, you can run it manually:
-```bash
-docker build -t tls-bypass-proxy .
-docker run -p 8080:8080 tls-bypass-proxy
-```
+#### Lambda Configuration:
+-   **Runtime**: `Amazon Linux 2023 (provided.al2023)`
+-   **Architecture**: `x86_64`
+-   **Handler**: `bootstrap`
+
+### Security & Spam Prevention
+
+For maximum security and to avoid billing from unauthorized spam, it is recommended to use **AWS IAM Authentication** on your Lambda Function URL. 
+
+- This rejects unauthorized requests at the AWS edge, before they trigger your Lambda.
+- You do not need to check for API keys in the code.
+- Applications calling the API must sign requests with AWS Signature Version 4 (SigV4).
+
+---
 
 ## Configuration
+
 The service can be configured via environment variables:
 
-- `PORT`: Port to listen on for local/container deployment (Default: `8080`)
+- `PORT`: Port to listen on (Default: `8080`)
