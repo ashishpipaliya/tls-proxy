@@ -11,8 +11,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/awslabs/aws-lambda-go-api-proxy/httpadapter"
 	fhttp "github.com/bogdanfinn/fhttp"
 	tls_client "github.com/bogdanfinn/tls-client"
 	"github.com/bogdanfinn/tls-client/profiles"
@@ -256,14 +254,6 @@ func main() {
 	http.HandleFunc("/request", gzipMiddleware(handleJSONRequest))
 	http.HandleFunc("/profiles", gzipMiddleware(handleProfiles))
 	http.HandleFunc("/health", gzipMiddleware(handleHealth))
-
-	// Detect if running on AWS Lambda
-	if os.Getenv("AWS_LAMBDA_FUNCTION_NAME") != "" {
-		log.Printf("☁️ Starting AWS Lambda handler...")
-		adapter := httpadapter.New(http.DefaultServeMux)
-		lambda.Start(adapter.Proxy)
-		return
-	}
 
 	// Local development server
 	log.Printf("🚀 TLS Bypass Service running on :%s", port)

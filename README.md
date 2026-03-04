@@ -48,28 +48,19 @@ docker run -p 8080:8080 tls-bypass-proxy
 
 ## Deployment
 
-### Container Platforms
-This service is stateless and can be deployed to any container platform (Docker, Kubernetes, Fly.io, etc.).
+### Render / Container Platforms
+This service is designed to run in a container. To deploy on **Render**:
 
+1. Create a new **Web Service**.
+2. Connect your GitHub repository.
+3. Select **Docker** as the Runtime.
+4. Render will automatically use the `Dockerfile` to build and deploy.
+
+Alternatively, you can run it manually:
 ```bash
 docker build -t tls-bypass-proxy .
 docker run -p 8080:8080 tls-bypass-proxy
 ```
-
-### AWS Lambda
-The service is pre-configured to run as an AWS Lambda function. 
-
-> [!TIP]
-> **Automatic Builds**: I have configured a GitHub Action that automatically builds the `.zip` files for both x86 and ARM64 every time you push to `main`. You can download them directly from the **Actions** tab on your GitHub repository.
-
-1. **Build for Lambda (Manual)**:
-   ```bash
-   GOOS=linux GOARCH=amd64 go build -o bootstrap main.go
-   zip function.zip bootstrap
-   ```
-2. **Deploy**: Upload `function.zip` to AWS Lambda.
-3. **Trigger**: Enable **Function URL** or **API Gateway (HTTP API)**.
-4. **Environment**: Ensure `AWS_LAMBDA_FUNCTION_NAME` is set (AWS sets this automatically).
 
 ## Configuration
 The service can be configured via environment variables:
