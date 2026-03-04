@@ -16,7 +16,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24' # Using stable 1.24 as 1.26 is very new
+          go-version: '1.26'
           cache: true
 
       - name: Install Dependencies
